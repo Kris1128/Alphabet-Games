@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>26 字母大冒险</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    padding: 16px;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Segoe UI Rounded", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    color: #5D4037;
+    
+    background-color: #FAF6F0;
+    background-image: 
+      radial-gradient(circle at 15% 20%, rgba(138, 211, 240, 0.3) 0%, transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(241, 154, 154, 0.25) 0%, transparent 45%),
+      radial-gradient(circle at 80% 15%, rgba(246, 195, 111, 0.25) 0%, transparent 40%),
+      radial-gradient(circle at 20% 85%, rgba(156, 212, 112, 0.2) 0%, transparent 45%);
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle at 10% 10%, rgba(255,255,255,0.8) 0%, transparent 20%),
+      radial-gradient(circle at 90% 30%, rgba(255,255,255,0.7) 0%, transparent 25%),
+      radial-gradient(circle at 30% 90%, rgba(255,255,255,0.6) 0%, transparent 30%),
+      radial-gradient(circle at 70% 70%, rgba(255,255,255,0.5) 0%, transparent 25%);
+    z-index: -1;
+    animation: float 8s ease-in-out infinite alternate;
+  }
+  @keyframes float { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    width: min(940px, 100%);
+    padding: 26px clamp(14px, 3vw, 36px) 32px;
+    border-radius: 36px;
+    background: rgba(255, 253, 248, 0.95);
+    border: 4px solid #ffffff;
+    box-shadow: 0 15px 35px rgba(93, 64, 55, 0.08), 0 5px 15px rgba(93, 64, 55, 0.04);
+  }
+
+  h1 {
+    margin: 4px 0 8px;
+    text-align: center;
+    font-size: clamp(26px, 4.8vw, 42px);
+    letter-spacing: 3px;
+    background: linear-gradient(90deg, #F5B759, #EE8B8B, #78C5C2, #F5B759);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: hueflow 6s linear infinite;
+    text-shadow: 0 2px 15px rgba(238, 139, 139, 0.2);
+  }
+  @keyframes hueflow { to { background-position: 300% 0; } }
+
+  .sub {
+    margin: 0 0 10px;
+    text-align: center;
+    font-size: 15px;
+    color: #8D6E63;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+  #menu.active {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px;
+    margin-top: 24px;
+  }
+
+  .mode-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px 16px;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 24px;
+    border: 3px solid #ffffff;
+    background: #ffffff;
+    box-shadow: 0 8px 20px rgba(93, 64, 55, 0.06);
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  
+  .mode-card:nth-child(1) { background: linear-gradient(135deg, #ffffff, #F1F8E9); }
+  .mode-card:nth-child(2) { background: linear-gradient(135deg, #ffffff, #E1F5FE); }
+  .mode-card:nth-child(3) { background: linear-gradient(135deg, #ffffff, #FFF8E1); }
+  .mode-card:nth-child(4) { background: linear-gradient(135deg, #ffffff, #FCE4EC); }
+  .mode-card:nth-child(5) { background: linear-gradient(135deg, #ffffff, #F3E5F5); }
+  .mode-card:nth-child(6) { background: linear-gradient(135deg, #ffffff, #E0F2F1); }
+  .mode-card:nth-child(7) { background: linear-gradient(135deg, #ffffff, #FFF3E0); }
+  .mode-card:nth-child(8) { background: linear-gradient(135deg, #ffffff, #EDE7F6); }
+
+  .mode-card:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 15px 25px rgba(93, 64, 55, 0.1);
+  }
+  .mode-card:active { transform: translateY(2px) scale(0.98); }
+  
+  .mode-card .emoji { font-size: 30px; line-height: 1; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
+  .mode-card .name { font-size: 17px; font-weight: 800; color: #4E342E; letter-spacing: 1px; }
+  .mode-card .desc { font-size: 12px; line-height: 1.4; color: #8D6E63; font-weight: 500; }
+
+  /* ---------- 顶部 HUD ---------- */
+  .hud {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 16px 0 22px;
+    min-height: 44px;
+    flex-wrap: wrap;
+  }
+
+  .hud-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .hud .back {
+    flex: none;
+    padding: 10px 20px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    color: #6D4C41;
+    cursor: pointer;
+    border-radius: 999px;
+    border: 2px solid #EFEBE9;
+    background: #ffffff;
+    box-shadow: 0 4px 0 #EFEBE9;
+    transition: all 0.15s;
+  }
+  .hud .back:hover { background: #F5F5F5; }
+  .hud .back:active { transform: translateY(3px); box-shadow: 0 1px 0 #EFEBE9; }
+
+  /* 选择器通用样式 */
+  .range-picker, .mode-picker {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 14px;
+    border: 2px solid #EFEBE9;
+    border-radius: 999px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 0 #EFEBE9;
+  }
+  .mode-picker { gap: 8px; border: none; background: transparent; box-shadow: none; padding: 0; }
+  
+  .range-picker select {
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    color: #6D4C41;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 4px 16px 4px 2px;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236D4C41' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: 10px;
+    transition: all 0.15s;
+  }
+  .range-picker select:disabled { color: #D7CCC8; cursor: not-allowed; background-image: none; }
+  .range-picker .separator { color: #8D6E63; font-weight: 800; margin: 0 2px; }
+
+  .mode-picker .mode-btn {
+    padding: 8px 16px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 800;
+    color: #8D6E63;
+    cursor: pointer;
+    border-radius: 999px;
+    border: 2px solid #EFEBE9;
+    background: #ffffff;
+    box-shadow: 0 4px 0 #EFEBE9;
+    transition: all 0.15s;
+  }
+  .mode-picker .mode-btn:hover { background: #F5F5F5; }
+  .mode-picker .mode-btn.active {
+    color: #ffffff;
+    background: #F5B759;
+    border-color: #F5B759;
+    box-shadow: 0 4px 0 #D58A8A;
+  }
+  .mode-picker .mode-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #D58A8A; }
+
+  .hud-center {
+    flex: 1;
+    text-align: center;
+    font-size: clamp(16px, 2.6vw, 19px);
+    font-weight: 800;
+    color: #5D4037;
+    letter-spacing: 0.5px;
+    min-width: 150px;
+  }
+  .hud-center b { color: #EE8B8B; }
+
+  .hud-right {
+    flex: none;
+    font-size: 16px;
+    font-weight: 800;
+    color: #8D6E63;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .next-letter {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 1.8em;
+    color: #F5B759;
+    text-shadow: 0 2px 8px rgba(245, 183, 89, 0.4);
+    vertical-align: middle;
+  }
+
+  /* ---------- 棋盘 ---------- */
+  .board {
+    display: grid;
+    gap: clamp(8px, 1.6vw, 14px);
+    width: 100%;
+    margin: 0 auto;
+    justify-content: center;
+  }
+  .board.order  { grid-template-columns: repeat(7, minmax(0, 1fr)); max-width: 680px; }
+  .board.match  { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 470px; }
+  .board.listen { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 420px; }
+  .board.phonics { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 400px; }
+  .board.train { grid-template-columns: repeat(5, minmax(0, 1fr)); max-width: 500px; }
+  
+  /* 打地鼠专用 */
+  .board.whack { 
+    grid-template-columns: repeat(3, minmax(0, 1fr)); 
+    max-width: 420px; 
+    aspect-ratio: 1 / 1;
+    background: #F5F5F5;
+    border-radius: 32px;
+    padding: 16px;
+    box-shadow: inset 0 6px 15px rgba(93,64,55,0.1);
+  }
+  .whack-hole {
+    background: #E0E0E0;
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 8px 15px rgba(0,0,0,0.15);
+  }
+  .whack-mole {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 20px;
+    transform: translateY(100%);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .whack-mole.up { transform: translateY(0); }
+  .mole-letter {
+    font-size: clamp(24px, 5vw, 36px);
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    z-index: 2;
+  }
+  .mole-animal {
+    position: absolute;
+    bottom: -50px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 32px;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 1;
+  }
+  .stars { font-size: 20px; animation: spin 1.5s linear infinite; }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+  @keyframes dizzy-wobble {
+    0% { transform: rotate(-10deg) scale(1); }
+    100% { transform: rotate(10deg) scale(1.1); }
+  }
+  .whack-mole.dizzy {
+    background: linear-gradient(145deg, #FFE0B2, #FFB74D) !important;
+    pointer-events: none;
+  }
+  .whack-mole.dizzy .mole-letter { transform: translateY(-20px) scale(0.5); opacity: 0; }
+  .whack-mole.dizzy .mole-animal { bottom: 10px; opacity: 1; animation: dizzy-wobble 0.6s infinite alternate; }
+
+  /* 首字母找朋友特有样式 */
+  .question-box {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    background: #fff;
+    padding: 16px;
+    border-radius: 24px;
+    box-shadow: 0 4px 15px rgba(93, 64, 55, 0.05);
+  }
+  .question-emoji { font-size: 56px; line-height: 1; animation: bounce 2s infinite; }
+  @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .question-word { font-size: 26px; font-weight: 800; color: #5D4037; letter-spacing: 2px; }
+
+  /* 小火车特有样式 */
+  .train-container {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 8px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .train-container::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    width: 90%;
+    height: 6px;
+    background: #D7CCC8;
+    border-radius: 4px;
+    z-index: -1;
+  }
+  .train-track { display: flex; gap: 6px; }
+  .train-car {
+    width: 60px; height: 80px;
+    background: #fff; border: 3px solid #EFEBE9; border-radius: 12px 12px 4px 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 800; color: #5D4037;
+    box-shadow: 0 6px 0 #EFEBE9;
+  }
+  .train-car.empty {
+    border-style: dashed; background: #FAF6F0; box-shadow: none; color: #D7CCC8;
+  }
+
+  /* 拼写小达人特有样式 */
+  .board.spell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    max-width: 650px;
+  }
+  .spell-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    padding: 24px 32px;
+    border-radius: 28px;
+    box-shadow: 0 6px 20px rgba(93,64,55,0.06);
+    transition: all 0.3s ease;
+    width: 100%;
+  }
+  .spell-emoji { font-size: 56px; line-height: 1; margin-bottom: 4px;}
+  .spell-cn { font-size: 18px; font-weight: 800; color: #8D6E63; margin-bottom: 8px; }
+  
+  .spell-word-display {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    font-size: clamp(32px, 6vw, 48px);
+    font-weight: 800;
+    text-transform: lowercase;
+  }
+  
+  .letter-display {
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    color: #D7CCC8;
+  }
+  .letter-display.active {
+    color: #F5B759;
+    transform: translateY(-8px) scale(1.15);
+    text-shadow: 0 8px 15px rgba(245, 183, 89, 0.4);
+  }
+  .letter-display.done {
+    color: #5D4037;
+    transform: translateY(0) scale(1);
+    text-shadow: none;
+  }
+
+  .spell-pool {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+  .spell-card {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    font-size: clamp(20px, 4vw, 26px);
+    text-transform: lowercase;
+  }
+
+  /* 双人模式布局 */
+  .board.spell.double { max-width: 850px; width: 100%; }
+  .spell-double-area { display: flex; justify-content: space-between; gap: 16px; width: 100%; margin-top: 10px; }
+  .spell-player {
+    flex: 1; background: rgba(255,255,255,0.8); border-radius: 24px; padding: 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px; border: 3px solid #EFEBE9;
+  }
+  .spell-player.p1 { border-color: #8AD3F0; }
+  .spell-player.p2 { border-color: #F19A9A; }
+  .player-tag { font-size: 16px; font-weight: 800; padding: 4px 16px; border-radius: 999px; }
+  .p1 .player-tag { background: #E1F5FE; color: #67B6D8; }
+  .p2 .player-tag { background: #FCE4EC; color: #D97D7D; }
+  .player-slots { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; min-height: 44px; }
+  .slot {
+    width: 32px; height: 40px; border-radius: 8px; border: 2px dashed #D7CCC8;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 800; color: #5D4037; background: #FAF6F0; text-transform: lowercase;
+  }
+  .slot.active { border-color: #F5B759; background: #FFFDF9; border-style: solid; }
+  .slot.done { border-color: #EFEBE9; background: #fff; border-style: solid; }
+  .spell-pool.double-pool { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; max-width: 240px; }
+  .spell-pool.double-pool .spell-card { width: 100%; aspect-ratio: 1 / 1; font-size: 20px; }
+
+  /* 火眼金睛特有样式 */
+  .board.confuse {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    max-width: 400px;
+    gap: 16px;
+    align-items: center;
+  }
+  .confuse-target {
+    grid-column: 1 / -1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: #fff; border-radius: 32px; padding: 30px;
+    box-shadow: 0 8px 25px rgba(93,64,55,0.08); margin-bottom: 20px; border: 4px dashed #E0E0E0;
+  }
+  .confuse-target-letter {
+    font-size: clamp(60px, 15vw, 100px); font-weight: 800; color: #F5B759;
+    line-height: 1; text-shadow: 0 6px 15px rgba(245, 183, 89, 0.3);
+  }
+
+  @media (max-width: 620px) {
+    .board.order { grid-template-columns: repeat(5, minmax(0, 1fr)); max-width: 470px; }
+    .hud { flex-direction: column; gap: 14px; }
+    .hud-center { order: -1; width: 100%; margin-bottom: 4px; }
+    .hud-left, .hud-right { width: 100%; justify-content: space-between; }
+    .hud-left { flex-wrap: wrap; justify-content: center; }
+    .train-car { width: 46px; height: 64px; font-size: 22px; }
+    .spell-word-display { font-size: 32px; gap: 2px; }
+    .spell-pool { gap: 8px; max-width: 280px; }
+    .board.confuse { max-width: 320px; }
+    .mode-picker .mode-btn { padding: 8px 12px; font-size: 13px; }
+    .spell-double-area { flex-direction: column; }
+    .spell-player { padding: 12px; }
+    .spell-pool.double-pool { max-width: 320px; grid-template-columns: repeat(4, 1fr); }
+    .slot { width: 28px; height: 36px; font-size: 18px; }
+  }
+  @media (max-width: 380px) {
+    .board.order { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .mode-picker { flex-direction: column; width: 100%; gap: 6px; }
+  }
+
+  /* ---------- 字母卡片 ---------- */
+  .card {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: clamp(14px, 2.5vw, 22px);
+    font-family: inherit;
+    font-weight: 800;
+    font-size: clamp(20px, 4vw, 34px);
+    color: #ffffff; 
+    text-shadow: 0 2px 4px rgba(93, 64, 55, 0.2);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    background: linear-gradient(145deg, var(--bg-light), var(--bg-dark));
+    box-shadow:
+      0 6px 15px rgba(93, 64, 55, 0.12),
+      inset 0 2px 0 rgba(255, 255, 255, 0.4);
+    transition: transform 0.15s ease, opacity 0.3s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  }
+  
+  .card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .card:hover { filter: brightness(1.05); transform: translateY(-2px); }
+  .card:active { transform: translateY(2px); box-shadow: 0 2px 6px rgba(93, 64, 55, 0.15); }
+  .card.done, .card.matched {
+    opacity: 0.2; pointer-events: none; transform: scale(0.85);
+    box-shadow: none; filter: grayscale(0.6);
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0) rotate(0); }
+    20% { transform: translateX(-6px) rotate(-3deg); }
+    40% { transform: translateX(6px) rotate(3deg); }
+    60% { transform: translateX(-4px) rotate(-2deg); }
+    80% { transform: translateX(4px) rotate(2deg); }
+  }
+  .card.shake { animation: shake 0.4s ease; }
+
+  @keyframes pop {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.15); box-shadow: 0 0 0 12px rgba(255, 255, 255, 0.5); }
+    100% { transform: scale(0.85); opacity: 0.2; }
+  }
+  .card.hit { animation: pop 0.6s forwards; pointer-events: none; }
+
+  /* ---------- 工具栏 ---------- */
+  .toolbar {
+    display: flex; justify-content: center; margin-top: 26px; min-height: 46px;
+  }
+  .pill {
+    padding: 12px 30px; font-family: inherit; font-size: 16px; font-weight: 800;
+    color: #6D4C41; cursor: pointer; border-radius: 999px;
+    border: 2px solid #EFEBE9; background: #ffffff; box-shadow: 0 5px 0 #EFEBE9;
+    transition: all 0.15s;
+  }
+  .pill:hover { background: #F5F5F5; }
+  .pill:active { transform: translateY(4px); box-shadow: 0 1px 0 #EFEBE9; }
+
+  /* ---------- 弹窗 ---------- */
+  .modal {
+    position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+    padding: 20px; background: rgba(93, 64, 55, 0.3); backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px); opacity: 0; pointer-events: none; transition: opacity 0.25s;
+  }
+  .modal.show { opacity: 1; pointer-events: auto; }
+  .modal-box {
+    width: 100%; max-width: 400px; padding: 36px 30px; text-align: center;
+    border-radius: 32px; background: #FFFDF9; border: 4px solid #ffffff;
+    box-shadow: 0 20px 40px rgba(93, 64, 55, 0.15);
+    transform: translateY(20px) scale(0.95); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .modal.show .modal-box { transform: translateY(0) scale(1); }
+  .modal-box h2 { margin: 0 0 12px; font-size: 28px; color: #4E342E; letter-spacing: 1px; }
+  .modal-box p { margin: 0 0 26px; font-size: 16px; font-weight: 500; color: #8D6E63; line-height: 1.6; }
+  .modal-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    padding: 12px 28px; font-family: inherit; font-size: 16px; font-weight: 800;
+    color: #6D4C41; cursor: pointer; border-radius: 999px;
+    border: 2px solid #EFEBE9; background: #ffffff; box-shadow: 0 4px 0 #EFEBE9; transition: all 0.15s;
+  }
+  .btn:hover { background: #F5F5F5; }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #EFEBE9; }
+  .btn.primary {
+    color: #ffffff; border: none; background: linear-gradient(135deg, #F5B759, #EE8B8B);
+    box-shadow: 0 5px 0 #D58A8A, 0 8px 15px rgba(238, 139, 139, 0.3);
+  }
+  .btn.primary:hover { filter: brightness(1.05); }
+  .btn.primary:active { transform: translateY(5px); box-shadow: 0 0px 0 #D58A8A; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <h1>26 字母大冒险</h1>
+  <p class="sub">A ~ Z 的八种玩法，来挑战吧！</p>
+
+  <!-- ========== 主菜单 ========== -->
+  <section id="menu" class="screen active">
+    <button class="mode-card" data-mode="order">
+      <span class="emoji">🌻</span>
+      <span class="name">字母接力</span>
+      <span class="desc">按 A → Z 的顺序，把 26 个字母依次点出来，看谁最快。</span>
+    </button>
+
+    <button class="mode-card" data-mode="match">
+      <span class="emoji">🍄</span>
+      <span class="name">大小字母连连看</span>
+      <span class="desc">点一张大写卡，再点它对应的小写卡，把它们连起来消除！</span>
+    </button>
+
+    <button class="mode-card" data-mode="listen">
+      <span class="emoji">🐝</span>
+      <span class="name">听音找字母</span>
+      <span class="desc">听发音，从卡片里选出你听到的那个字母。</span>
+    </button>
+    
+    <button class="mode-card" data-mode="phonics">
+      <span class="emoji">🍎</span>
+      <span class="name">首字母找朋友</span>
+      <span class="desc">看可爱的图案，听单词发音，找出它对应的首字母。</span>
+    </button>
+
+    <button class="mode-card" data-mode="train">
+      <span class="emoji">🚂</span>
+      <span class="name">字母小火车</span>
+      <span class="desc">小火车少了一节车厢，快把正确的字母填进去吧！</span>
+    </button>
+
+    <button class="mode-card" data-mode="spell">
+      <span class="emoji">✏️</span>
+      <span class="name">拼写小达人</span>
+      <span class="desc">看着完整的单词，从字母池中按顺序找出它包含的字母。</span>
+    </button>
+
+    <button class="mode-card" data-mode="whack">
+      <span class="emoji">🔨</span>
+      <span class="name">字母打地鼠</span>
+      <span class="desc">9个地鼠带着字母冒出来了，根据提示找出长相一样的字母吧！</span>
+    </button>
+
+    <button class="mode-card" data-mode="confuse">
+      <span class="emoji">🧐</span>
+      <span class="name">火眼金睛</span>
+      <span class="desc">专门辨认 b/d/p/q 等容易混淆的字母，并找出对应的大小写。</span>
+    </button>
+  </section>
+
+  <!-- ========== 游戏区 ========== -->
+  <section id="game" class="screen">
+    <div class="hud">
+      <div class="hud-left">
+        <button id="backBtn" class="back">← 返回</button>
+        
+        <div id="rangePicker" class="range-picker">
+          <select id="startSelect"></select>
+          <span class="separator">-</span>
+          <select id="endSelect"></select>
+        </div>
+
+        <div id="confuseModePicker" class="mode-picker">
+          <button id="btnUpperToLower" class="mode-btn active">🔠 大写找小写</button>
+          <button id="btnLowerToUpper" class="mode-btn">🔡 小写找大写</button>
+        </div>
+
+        <div id="spellModePicker" class="mode-picker">
+          <button id="btnSpellSingle" class="mode-btn active">🧑 单人模式</button>
+          <button id="btnSpellDouble" class="mode-btn">⚔️ 双人模式</button>
+        </div>
+      </div>
+      
+      <div class="hud-center" id="hudCenter"></div>
+      <div class="hud-right" id="hudRight"></div>
+    </div>
+
+    <div id="board" class="board"></div>
+
+    <div class="toolbar">
+      <button id="replayBtn" class="pill" hidden>🎵 再听一次</button>
+    </div>
+  </section>
+</div>
+
+<!-- ========== 结算弹窗 ========== -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <h2 id="modalTitle"></h2>
+    <p id="modalText"></p>
+    <div class="modal-btns">
+      <button id="againBtn" class="btn primary">再来一次</button>
+      <button id="homeBtn" class="btn">回到首页</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const LETTERS = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
+
+  const PHONICS_WORDS = [
+    { letter: 'A', word: 'Apple', emoji: '🍎' }, { letter: 'B', word: 'Bear', emoji: '🐻' },
+    { letter: 'C', word: 'Cat', emoji: '🐱' }, { letter: 'D', word: 'Dog', emoji: '🐶' },
+    { letter: 'E', word: 'Elephant', emoji: '🐘' }, { letter: 'F', word: 'Fish', emoji: '🐟' },
+    { letter: 'G', word: 'Grape', emoji: '🍇' }, { letter: 'H', word: 'Horse', emoji: '🐴' },
+    { letter: 'I', word: 'Ice cream', emoji: '🍦' }, { letter: 'J', word: 'Juice', emoji: '🧃' },
+    { letter: 'K', word: 'Koala', emoji: '🐨' }, { letter: 'L', word: 'Lion', emoji: '🦁' },
+    { letter: 'M', word: 'Monkey', emoji: '🐒' }, { letter: 'N', word: 'Nose', emoji: '👃' },
+    { letter: 'O', word: 'Orange', emoji: '🍊' }, { letter: 'P', word: 'Panda', emoji: '🐼' },
+    { letter: 'Q', word: 'Queen', emoji: '👸' }, { letter: 'R', word: 'Rabbit', emoji: '🐰' },
+    { letter: 'S', word: 'Sun', emoji: '☀️' }, { letter: 'T', word: 'Tiger', emoji: '🐯' },
+    { letter: 'U', word: 'Umbrella', emoji: '☂️' }, { letter: 'V', word: 'Violin', emoji: '🎻' },
+    { letter: 'W', word: 'Watermelon', emoji: '🍉' }, { letter: 'X', word: 'X-ray', emoji: '🩻' },
+    { letter: 'Y', word: 'Yacht', emoji: '🛥️' }, { letter: 'Z', word: 'Zebra', emoji: '🦓' }
+  ];
+
+  const SPELL_WORDS = [
+    { word: 'apple', emoji: '🍎', cn: '苹果' }, { word: 'ant', emoji: '🐜', cn: '蚂蚁' },
+    { word: 'black', emoji: '⬛', cn: '黑色' }, { word: 'ball', emoji: '⚽', cn: '球' },
+    { word: 'bird', emoji: '🐦', cn: '鸟' }, { word: 'book', emoji: '📖', cn: '书' },
+    { word: 'cat', emoji: '🐱', cn: '猫' }, { word: 'cake', emoji: '🍰', cn: '蛋糕' },
+    { word: 'dog', emoji: '🐶', cn: '狗' }, { word: 'duck', emoji: '🦆', cn: '鸭子' },
+    { word: 'elephant', emoji: '🐘', cn: '大象' }, { word: 'eye', emoji: '👁️', cn: '眼睛' },
+    { word: 'fish', emoji: '🐟', cn: '鱼' }, { word: 'friend', emoji: '🧑‍🤝‍🧑', cn: '朋友' },
+    { word: 'frog', emoji: '🐸', cn: '青蛙' }, { word: 'goat', emoji: '🐐', cn: '山羊' },
+    { word: 'girl', emoji: '👧', cn: '女孩' }, { word: 'hat', emoji: '🎩', cn: '帽子' },
+    { word: 'hello', emoji: '👋', cn: '你好' }, { word: 'hop', emoji: '🐰', cn: '单脚跳' },
+    { word: 'insect', emoji: '🐛', cn: '昆虫' }, { word: 'jump', emoji: '🤸', cn: '跳跃' },
+    { word: 'kite', emoji: '🪁', cn: '风筝' }, { word: 'lion', emoji: '🦁', cn: '狮子' },
+    { word: 'monkey', emoji: '🐒', cn: '猴子' }, { word: 'milk', emoji: '🥛', cn: '牛奶' },
+    { word: 'newspaper', emoji: '📰', cn: '报纸' }, { word: 'new', emoji: '✨', cn: '新的' },
+    { word: 'ostrich', emoji: '🦩', cn: '鸵鸟' }, { word: 'pen', emoji: '🖊️', cn: '钢笔' },
+    { word: 'pencil', emoji: '✏️', cn: '铅笔' }, { word: 'queen', emoji: '👸', cn: '女王' },
+    { word: 'ring', emoji: '💍', cn: '戒指' }, { word: 'sun', emoji: '☀️', cn: '太阳' },
+    { word: 'star', emoji: '⭐', cn: '星星' }, { word: 'teeth', emoji: '🦷', cn: '牙齿' },
+    { word: 'tiger', emoji: '🐯', cn: '老虎' }, { word: 'umbrella', emoji: '☂️', cn: '雨伞' },
+    { word: 'violin', emoji: '🎻', cn: '小提琴' }, { word: 'watch', emoji: '⌚', cn: '手表' },
+    { word: 'xray', emoji: '🩻', cn: 'X光' }, { word: 'box', emoji: '📦', cn: '盒子' },
+    { word: 'yellow', emoji: '💛', cn: '黄色' }, { word: 'yacht', emoji: '🛥️', cn: '游艇' },
+    { word: 'zoo', emoji: '🦁', cn: '动物园' }, { word: 'zebra', emoji: '🦓', cn: '斑马' }
+  ];
+
+  const CONFUSE_GROUPS = [
+    ['b', 'd', 'p', 'q'], ['m', 'w', 'n'], ['u', 'n', 'h'], ['i', 'l', 'j'], ['f', 't']
+  ];
+
+  const $ = (s) => document.querySelector(s);
+  const menu      = $('#menu');
+  const game      = $('#game');
+  const board     = $('#board');
+  const hudCenter = $('#hudCenter');
+  const hudRight  = $('#hudRight');
+  const replayBtn = $('#replayBtn');
+  const modal     = $('#modal');
+  const modalTitle = $('#modalTitle');
+  const modalText  = $('#modalText');
+  const againBtn   = $('#againBtn');
+  const homeBtn    = $('#homeBtn');
+  const backBtn    = $('#backBtn');
+  
+  const rangePicker = $('#rangePicker');
+  const startSelect = $('#startSelect');
+  const endSelect   = $('#endSelect');
+
+  const confuseModePicker = $('#confuseModePicker');
+  const btnUpperToLower = $('#btnUpperToLower');
+  const btnLowerToUpper = $('#btnLowerToUpper');
+
+  const spellModePicker = $('#spellModePicker');
+  const btnSpellSingle = $('#btnSpellSingle');
+  const btnSpellDouble = $('#btnSpellDouble');
+
+  const hasSpeech = 'speechSynthesis' in window;
+
+  const WATER_COLORS = [
+    ['#8AD3F0', '#67B6D8'], ['#F6C36F', '#E5A84A'], ['#F19A9A', '#D97D7D'],
+    ['#9CD470', '#7FB84F'], ['#DBA8C8', '#C48AAE'], ['#78C5C2', '#5FA6A3'],
+    ['#F4D078', '#DFB858'], ['#E8A598', '#CD8476']
+  ];
+
+  let currentMode = null;
+  let currentLetters = [...LETTERS];
+  let gameTimers = [];
+  
+  let confuseMode = 'upper-to-lower'; 
+  let spellMode = 'single';
+
+  function addTimer(id) { gameTimers.push(id); return id; }
+  function clearAllTimers() {
+    gameTimers.forEach(id => { clearTimeout(id); clearInterval(id); });
+    gameTimers = [];
+  }
+
+  function initRangePicker() {
+    LETTERS.forEach(ch => {
+      startSelect.appendChild(new Option(ch, ch));
+      endSelect.appendChild(new Option(ch, ch));
+    });
+    startSelect.value = 'A';
+    endSelect.value = 'Z';
+    updateLetterPool();
+  }
+
+  function syncRangePicker() {
+    const startVal = startSelect.value;
+    const endVal = endSelect.value;
+    
+    Array.from(endSelect.options).forEach(opt => { opt.disabled = opt.value < startVal; });
+    Array.from(startSelect.options).forEach(opt => { opt.disabled = opt.value > endVal; });
+    
+    if (startVal > endVal) {
+      if (document.activeElement === startSelect) endSelect.value = startVal;
+      else startSelect.value = endVal;
+    }
+    updateLetterPool();
+  }
+
+  function updateLetterPool() {
+    const start = startSelect.value.charCodeAt(0);
+    const end = endSelect.value.charCodeAt(0);
+    currentLetters = [];
+    for (let i = start; i <= end; i++) currentLetters.push(String.fromCharCode(i));
+  }
+
+  startSelect.addEventListener('change', () => {
+    syncRangePicker();
+    if (currentMode === 'match') startMatch();
+    else if (currentMode === 'listen') startListen();
+    else if (currentMode === 'phonics') startPhonics();
+    else if (currentMode === 'train') startTrain();
+    else if (currentMode === 'whack') startWhack();
+  });
+
+  endSelect.addEventListener('change', () => {
+    syncRangePicker();
+    if (currentMode === 'match') startMatch();
+    else if (currentMode === 'listen') startListen();
+    else if (currentMode === 'phonics') startPhonics();
+    else if (currentMode === 'train') startTrain();
+    else if (currentMode === 'whack') startWhack();
+  });
+
+  initRangePicker();
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  let actx = null;
+  function beep(freq, dur = 0.1, type = 'sine', vol = 0.06) {
+    try {
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+      const osc = actx.createOscillator();
+      const gain = actx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(vol, actx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+      osc.connect(gain);
+      gain.connect(actx.destination);
+      osc.start();
+      osc.stop(actx.currentTime + dur);
+    } catch (e) {}
+  }
+
+  function makeCard(text) {
+    const idx = text.toUpperCase().charCodeAt(0) - 65;
+    const colorPair = WATER_COLORS[(idx >= 0 ? idx : 0) % WATER_COLORS.length];
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'card';
+    el.style.setProperty('--bg-light', colorPair[0]);
+    el.style.setProperty('--bg-dark', colorPair[1]);
+    el.textContent = text;
+    return el;
+  }
+
+  function cleanupGame() {
+    clearAllTimers();
+    if (hasSpeech) speechSynthesis.cancel();
+    board.innerHTML = '';
+    board.className = 'board';
+    hudCenter.textContent = '';
+    hudRight.textContent = '';
+    replayBtn.hidden = true;
+    replayBtn.onclick = null;
+    board.style.gridTemplateColumns = '';
+    board.style.maxWidth = '';
+  }
+
+  let againHandler = null;
+
+  function showModal(title, text, onAgain) {
+    modalTitle.textContent = title;
+    modalText.textContent = text;
+    againHandler = onAgain;
+    modal.classList.add('show');
+  }
+  function hideModal() { modal.classList.remove('show'); }
+
+  againBtn.addEventListener('click', function () {
+    hideModal();
+    if (againHandler) againHandler();
+  });
+  homeBtn.addEventListener('click', goHome);
+
+  function goHome() {
+    cleanupGame();
+    hideModal();
+    game.classList.remove('active');
+    menu.classList.add('active');
+    currentMode = null;
+    rangePicker.style.display = 'none';
+    confuseModePicker.style.display = 'none';
+    spellModePicker.style.display = 'none';
+  }
+  backBtn.addEventListener('click', goHome);
+
+  /* ==================== 模式切换绑定 ==================== */
+  btnUpperToLower.addEventListener('click', () => {
+    if (confuseMode === 'upper-to-lower') return;
+    confuseMode = 'upper-to-lower';
+    btnUpperToLower.classList.add('active');
+    btnLowerToUpper.classList.remove('active');
+    if (currentMode === 'confuse') startConfuse();
+  });
+
+  btnLowerToUpper.addEventListener('click', () => {
+    if (confuseMode === 'lower-to-upper') return;
+    confuseMode = 'lower-to-upper';
+    btnLowerToUpper.classList.add('active');
+    btnUpperToLower.classList.remove('active');
+    if (currentMode === 'confuse') startConfuse();
+  });
+
+  btnSpellSingle.addEventListener('click', () => {
+    if (spellMode === 'single') return;
+    spellMode = 'single';
+    btnSpellSingle.classList.add('active');
+    btnSpellDouble.classList.remove('active');
+    if (currentMode === 'spell') startSpell();
+  });
+
+  btnSpellDouble.addEventListener('click', () => {
+    if (spellMode === 'double') return;
+    spellMode = 'double';
+    btnSpellDouble.classList.add('active');
+    btnSpellSingle.classList.remove('active');
+    if (currentMode === 'spell') startSpell();
+  });
+
+
+  /* ==================== 1. 字母接力 ==================== */
+  function startOrder() {
+    cleanupGame();
+    currentMode = 'order';
+    board.classList.add('order');
+    rangePicker.style.display = 'none';
+
+    let next = 0;
+    let mistakes = 0;
+    const t0 = performance.now();
+
+    shuffle(LETTERS.slice()).forEach((ch) => {
+      const el = makeCard(ch);
+      el.addEventListener('click', () => onClick(ch, el));
+      board.appendChild(el);
+    });
+
+    function updateHud() {
+      hudCenter.innerHTML = '下一个字母：<b class="next-letter">' + LETTERS[next] + '</b>';
+    }
+    updateHud();
+
+    addTimer(setInterval(() => {
+      hudRight.textContent = '⏱ ' + ((performance.now() - t0) / 1000).toFixed(1) + 's';
+    }, 100));
+
+    function onClick(ch, el) {
+      if (ch !== LETTERS[next]) {
+        mistakes++;
+        beep(170, 0.16, 'sawtooth');
+        el.classList.add('shake');
+        addTimer(setTimeout(() => el.classList.remove('shake'), 460));
+        return;
+      }
+      beep(600 + next * 14, 0.09);
+      el.classList.add('done');
+      next++;
+
+      if (next >= 26) {
+        clearAllTimers();
+        const total = (performance.now() - t0) / 1000;
+        addTimer(setTimeout(() => showModal('🎉 全部点亮！', '用时 ' + total.toFixed(1) + ' 秒，点错 ' + mistakes + ' 次', startOrder), 480));
+      } else {
+        updateHud();
+      }
+    }
+  }
+
+  /* ==================== 2. 大小字母连连看 ==================== */
+  function startMatch() {
+    cleanupGame();
+    currentMode = 'match';
+    board.classList.add('match');
+    rangePicker.style.display = 'flex';
+
+    const TOTAL_ROUNDS = 3;
+    const neededPairs = 8;
+    const TOTAL_PAIRS = TOTAL_ROUNDS * neededPairs;
+
+    let round = 0, pairs = 0, mistakes = 0, picked = [], locked = false;
+
+    function updateHud() {
+      hudCenter.innerHTML = '点一张大写，再点对应的小写连起来';
+      hudRight.textContent = '🌸 ' + pairs + '/' + TOTAL_PAIRS + ' · ❌ ' + mistakes;
+    }
+
+    function newRound() {
+      round++;
+      if (round > TOTAL_ROUNDS) {
+        showModal('🎉 连连看成功！', '一共配对 ' + pairs + ' 组，点错 ' + mistakes + ' 次', startMatch);
+        return;
+      }
+
+      picked = []; locked = false; board.innerHTML = '';
+
+      const pool = [];
+      for (let i = 0; i < neededPairs; i++) pool.push(currentLetters[i % currentLetters.length]);
+
+      const items = [];
+      pool.forEach(ch => {
+        items.push({ ch: ch, lower: false });
+        items.push({ ch: ch, lower: true });
+      });
+      shuffle(items);
+
+      items.forEach((it) => {
+        const el = makeCard(it.lower ? it.ch.toLowerCase() : it.ch);
+        el.dataset.letter = it.ch;
+        el.dataset.lower = it.lower ? '1' : '0';
+        const rc = WATER_COLORS[Math.floor(Math.random() * WATER_COLORS.length)];
+        el.style.setProperty('--bg-light', rc[0]);
+        el.style.setProperty('--bg-dark', rc[1]);
+        el.addEventListener('click', () => pick(el));
+        board.appendChild(el);
+      });
+      updateHud();
+    }
+
+    function pick(el) {
+      if (locked || el.classList.contains('matched') || picked.indexOf(el) !== -1) return;
+      el.classList.add('picked');
+      picked.push(el);
+      if (picked.length < 2) return;
+
+      const a = picked[0], b = picked[1];
+      if (a.dataset.letter === b.dataset.letter && a.dataset.lower !== b.dataset.lower) {
+        beep(700, 0.08); addTimer(setTimeout(() => beep(980, 0.12), 80));
+        a.classList.add('matched'); b.classList.add('matched');
+        a.classList.remove('picked'); b.classList.remove('picked');
+        picked = []; pairs++; updateHud();
+        if (board.querySelectorAll('.card:not(.matched)').length === 0) {
+          locked = true; addTimer(setTimeout(newRound, 750));
+        }
+      } else {
+        locked = true; mistakes++; beep(180, 0.18, 'sawtooth');
+        a.classList.add('shake'); b.classList.add('shake');
+        addTimer(setTimeout(() => {
+          a.classList.remove('picked', 'shake'); b.classList.remove('picked', 'shake');
+          picked = []; locked = false; updateHud();
+        }, 520));
+      }
+    }
+    newRound();
+  }
+
+  /* ==================== 3. 听音找字母 ==================== */
+  function startListen() {
+    cleanupGame();
+    currentMode = 'listen';
+    board.classList.add('listen');
+    rangePicker.style.display = 'flex';
+
+    let correct = 0, mistakes = 0, current = null, locked = false;
+
+    replayBtn.hidden = false;
+    replayBtn.onclick = () => speak(current);
+
+    function speak(ch) {
+      if (!hasSpeech || !ch) return;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(ch);
+      u.lang = 'en-US'; u.rate = 0.7; u.pitch = 1.1; u.volume = 1;
+      speechSynthesis.speak(u);
+    }
+
+    function updateHud() { hudRight.textContent = '🌟 ' + correct + ' · ❌ ' + mistakes; }
+
+    function newRound() {
+      locked = false; board.innerHTML = '';
+      current = currentLetters[Math.floor(Math.random() * currentLetters.length)];
+      const maxOptions = Math.min(6, currentLetters.length);
+      const available = currentLetters.filter(c => c !== current);
+      const distractors = shuffle(available).slice(0, maxOptions - 1);
+      const options = shuffle([current].concat(distractors));
+
+      options.forEach(ch => {
+        const el = makeCard(Math.random() < 0.5 ? ch.toLowerCase() : ch);
+        el.dataset.letter = ch;
+        const rc = WATER_COLORS[Math.floor(Math.random() * WATER_COLORS.length)];
+        el.style.setProperty('--bg-light', rc[0]);
+        el.style.setProperty('--bg-dark', rc[1]);
+        el.addEventListener('click', () => choose(el));
+        board.appendChild(el);
+      });
+
+      hudCenter.innerHTML = hasSpeech ? '听一听，点出你听到的字母' : '点出字母 <b>' + current + '</b>';
+      updateHud();
+      if (hasSpeech) addTimer(setTimeout(() => speak(current), 300));
+    }
+
+    function choose(el) {
+      if (locked) return;
+      if (el.dataset.letter === current) {
+        locked = true; correct++;
+        beep(720, 0.09); addTimer(setTimeout(() => beep(1000, 0.12), 90));
+        el.classList.add('hit'); updateHud();
+        addTimer(setTimeout(newRound, 700));
+      } else {
+        mistakes++; beep(170, 0.18, 'sawtooth');
+        el.classList.add('shake'); addTimer(setTimeout(() => el.classList.remove('shake'), 460));
+        updateHud();
+      }
+    }
+    newRound();
+  }
+
+  /* ==================== 4. 首字母找朋友 ==================== */
+  function startPhonics() {
+    cleanupGame();
+    currentMode = 'phonics';
+    board.classList.add('phonics');
+    rangePicker.style.display = 'flex';
+
+    let correct = 0, mistakes = 0, currentItem = null, locked = false;
+
+    replayBtn.hidden = false;
+    replayBtn.onclick = () => speakWord(currentItem ? currentItem.word : '');
+
+    function speakWord(word) {
+      if (!hasSpeech || !word) return;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(word);
+      u.lang = 'en-US'; u.rate = 0.8; u.pitch = 1.1;
+      speechSynthesis.speak(u);
+    }
+
+    function updateHud() { hudRight.textContent = '🌟 ' + correct + ' · ❌ ' + mistakes; }
+
+    function newRound() {
+      locked = false; board.innerHTML = '';
+
+      const availableWords = PHONICS_WORDS.filter(w => currentLetters.includes(w.letter));
+      currentItem = availableWords[Math.floor(Math.random() * availableWords.length)];
+
+      const maxOptions = Math.min(4, currentLetters.length);
+      const distractors = shuffle(currentLetters.filter(c => c !== currentItem.letter)).slice(0, maxOptions - 1);
+      const options = shuffle([currentItem.letter].concat(distractors));
+
+      const qBox = document.createElement('div');
+      qBox.className = 'question-box';
+      qBox.innerHTML = `
+        <div class="question-emoji">${currentItem.emoji}</div>
+        <div class="question-word">${currentItem.word}</div>
+      `;
+      board.appendChild(qBox);
+
+      options.forEach(ch => {
+        const el = makeCard(ch); 
+        el.dataset.letter = ch;
+        const rc = WATER_COLORS[Math.floor(Math.random() * WATER_COLORS.length)];
+        el.style.setProperty('--bg-light', rc[0]);
+        el.style.setProperty('--bg-dark', rc[1]);
+        el.addEventListener('click', () => choose(el));
+        board.appendChild(el);
+      });
+
+      hudCenter.innerHTML = '听一听，它的首字母是什么？';
+      updateHud();
+      if (hasSpeech) addTimer(setTimeout(() => speakWord(currentItem.word), 300));
+    }
+
+    function choose(el) {
+      if (locked) return;
+      if (el.dataset.letter === currentItem.letter) {
+        locked = true; correct++;
+        beep(720, 0.09); addTimer(setTimeout(() => beep(1000, 0.12), 90));
+        el.classList.add('hit'); updateHud();
+        addTimer(setTimeout(newRound, 900));
+      } else {
+        mistakes++; beep(170, 0.18, 'sawtooth');
+        el.classList.add('shake'); addTimer(setTimeout(() => el.classList.remove('shake'), 460));
+        updateHud();
+      }
+    }
+    newRound();
+  }
+
+  /* ==================== 5. 字母小火车 ==================== */
+  function startTrain() {
+    cleanupGame();
+    currentMode = 'train';
+    board.classList.add('train');
+    rangePicker.style.display = 'flex';
+
+    let correct = 0, mistakes = 0, locked = false;
+    const minPool = 3;
+
+    function updateHud() { hudRight.textContent = '🌟 ' + correct + ' · ❌ ' + mistakes; }
+
+    function newRound() {
+      if (currentLetters.length < minPool) {
+        board.innerHTML = `
+          <div class="question-box" style="grid-column: 1/-1; text-align: center;">
+            <div class="question-emoji">🚧</div>
+            <div class="question-word" style="font-size: 18px; margin-top: 10px;">字母太少啦</div>
+            <p style="color:#8D6E63; font-size:14px;">请在上方选择至少 ${minPool} 个字母哦！</p>
+          </div>
+        `;
+        hudCenter.innerHTML = '无法生成小火车';
+        return;
+      }
+
+      locked = false; board.innerHTML = '';
+      const maxLen = Math.min(currentLetters.length, 5);
+      const startIndex = Math.floor(Math.random() * (currentLetters.length - maxLen + 1));
+      const segment = currentLetters.slice(startIndex, startIndex + maxLen);
+      const emptyIndex = Math.floor(Math.random() * (maxLen - 2)) + 1;
+      const answer = segment[emptyIndex];
+
+      const trainContainer = document.createElement('div');
+      trainContainer.className = 'train-container';
+      trainContainer.innerHTML = `<div class="train-track"></div>`;
+      const track = trainContainer.querySelector('.train-track');
+
+      segment.forEach((ch, i) => {
+        const car = document.createElement('div');
+        if (i === emptyIndex) {
+          car.className = 'train-car empty';
+          car.textContent = '?';
+          car.id = 'empty-car';
+        } else {
+          car.className = 'train-car';
+          car.textContent = ch;
+        }
+        track.appendChild(car);
+      });
+      board.appendChild(trainContainer);
+
+      const maxOptions = Math.min(4, currentLetters.length);
+      const distractors = shuffle(currentLetters.filter(c => c !== answer)).slice(0, maxOptions - 1);
+      const options = shuffle([answer].concat(distractors));
+
+      options.forEach(ch => {
+        const el = makeCard(ch);
+        el.dataset.letter = ch;
+        const rc = WATER_COLORS[Math.floor(Math.random() * WATER_COLORS.length)];
+        el.style.setProperty('--bg-light', rc[0]);
+        el.style.setProperty('--bg-dark', rc[1]);
+        el.addEventListener('click', () => choose(el, answer));
+        board.appendChild(el);
+      });
+
+      hudCenter.innerHTML = '小火车少了一节车厢，找一找填进去！';
+      updateHud();
+    }
+
+    function choose(el, answer) {
+      if (locked) return;
+      if (el.dataset.letter === answer) {
+        locked = true; correct++;
+        beep(720, 0.09); addTimer(setTimeout(() => beep(1000, 0.12), 90));
+        
+        const emptyCar = document.getElementById('empty-car');
+        if (emptyCar) {
+          emptyCar.textContent = answer;
+          emptyCar.classList.remove('empty');
+          emptyCar.style.color = '#5D4037';
+          emptyCar.style.background = '#F1F8E9';
+          emptyCar.style.boxShadow = '0 6px 0 #EFEBE9';
+        }
+        
+        el.classList.add('hit'); 
+        updateHud();
+        addTimer(setTimeout(newRound, 1200));
+      } else {
+        mistakes++; beep(170, 0.18, 'sawtooth');
+        el.classList.add('shake'); addTimer(setTimeout(() => el.classList.remove('shake'), 460));
+        updateHud();
+      }
+    }
+    newRound();
+  }
+
+  /* ==================== 6. 拼写小达人 ==================== */
+  function startSpell() {
+    cleanupGame();
+    currentMode = 'spell';
+    board.classList.add('spell');
+    rangePicker.style.display = 'none';
+    spellModePicker.style.display = 'flex';
+
+    if (spellMode === 'single') {
+      board.classList.add('single');
+      board.classList.remove('double');
+      startSpellSingle();
+    } else {
+      board.classList.add('double');
+      board.classList.remove('single');
+      startSpellDouble();
+    }
+  }
+
+  function startSpellSingle() {
+    let correct = 0, mistakes = 0;
+    function updateHud() { hudRight.textContent = '🌟 ' + correct + ' · ❌ ' + mistakes; }
+
+    function newRound() {
+      board.innerHTML = '';
+      const target = SPELL_WORDS[Math.floor(Math.random() * SPELL_WORDS.length)];
+      const word = target.word.toLowerCase();
+      const letters = word.split('');
+      
+      let currentIndex = 0;
+      const pool = [...letters];
+      const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+      let distractCount = 0;
+      while (distractCount < 5) {
+        pool.push(alphabet[Math.floor(Math.random() * 26)]);
+        distractCount++;
+      }
+      shuffle(pool);
+
+      const promptDiv = document.createElement('div');
+      promptDiv.className = 'spell-prompt';
+      let wordHtml = '<div class="spell-word-display">';
+      letters.forEach((ch, i) => {
+        wordHtml += `<span class="letter-display ${i === 0 ? 'active' : ''}">${ch}</span>`;
+      });
+      wordHtml += '</div>';
+
+      promptDiv.innerHTML = `
+        <span class="spell-emoji">${target.emoji}</span>
+        <span class="spell-cn">${target.cn}</span>
+        ${wordHtml}
+      `;
+      board.appendChild(promptDiv);
+      
+      const letterSpans = promptDiv.querySelectorAll('.letter-display');
+
+      const poolDiv = document.createElement('div');
+      poolDiv.className = 'spell-pool';
+      pool.forEach((ch) => {
+        const el = makeCard(ch);
+        el.classList.add('spell-card');
+        el.addEventListener('click', () => pickLetter(ch, el));
+        poolDiv.appendChild(el);
+      });
+      board.appendChild(poolDiv);
+
+      function pickLetter(ch, el) {
+        if (currentIndex >= letters.length || el.classList.contains('done')) return;
+        const targetLetter = letters[currentIndex];
+        if (ch === targetLetter) {
+          beep(600 + currentIndex * 20, 0.08);
+          letterSpans[currentIndex].classList.remove('active');
+          letterSpans[currentIndex].classList.add('done');
+          el.classList.add('done');
+          currentIndex++;
+          if (currentIndex < letters.length) {
+            letterSpans[currentIndex].classList.add('active');
+          } else {
+            correct++;
+            updateHud();
+            if (hasSpeech) {
+              speechSynthesis.cancel();
+              const u = new SpeechSynthesisUtterance(word);
+              u.lang = 'en-US'; u.rate = 0.8;
+              speechSynthesis.speak(u);
+            }
+            promptDiv.style.transform = 'scale(1.05)';
+            promptDiv.style.boxShadow = '0 8px 25px rgba(245, 183, 89, 0.3)';
+            addTimer(setTimeout(newRound, 2000));
+          }
+        } else {
+          mistakes++;
+          beep(170, 0.15, 'sawtooth');
+          el.classList.add('shake');
+          addTimer(setTimeout(() => el.classList.remove('shake'), 450));
+          updateHud();
+        }
+      }
+      hudCenter.innerHTML = '看上面的单词，按顺序在下面找出字母吧！';
+      updateHud();
+      if (hasSpeech) {
+        addTimer(setTimeout(() => {
+          speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(word);
+          u.lang = 'en-US'; u.rate = 0.8;
+          speechSynthesis.speak(u);
+        }, 300));
+      }
+    }
+    newRound();
+  }
+
+  function startSpellDouble() {
+    let p1Score = 0, p2Score = 0;
+    let globalLocked = false;
+
+    function updateHud() { 
+      hudCenter.innerHTML = '看谁拼得最快！';
+      hudRight.innerHTML = `🔵 P1: ${p1Score}  vs  🔴 P2: ${p2Score}`; 
+    }
+
+    function newRound() {
+      globalLocked = false;
+      board.innerHTML = '';
+      
+      const target = SPELL_WORDS[Math.floor(Math.random() * SPELL_WORDS.length)];
+      const word = target.word.toLowerCase();
+      const letters = word.split('');
+      
+      const promptDiv = document.createElement('div');
+      promptDiv.className = 'spell-prompt';
+      promptDiv.innerHTML = `
+        <span class="spell-emoji">${target.emoji}</span>
+        <span class="spell-cn">${target.cn}</span>
+        <div class="spell-word-display">${letters.map(ch => `<span style="color:#5D4037;">${ch}</span>`).join('')}</div>
+      `;
+      board.appendChild(promptDiv);
+
+      const area = document.createElement('div');
+      area.className = 'spell-double-area';
+      board.appendChild(area);
+
+      function createPlayerUI(playerId, name, poolClass) {
+        const pDiv = document.createElement('div');
+        pDiv.className = `spell-player ${poolClass}`;
+        
+        const tag = document.createElement('div');
+        tag.className = 'player-tag';
+        tag.textContent = name;
+        pDiv.appendChild(tag);
+
+        const slotsDiv = document.createElement('div');
+        slotsDiv.className = 'player-slots';
+        const slotEls = [];
+        letters.forEach((ch, i) => {
+          const s = document.createElement('div');
+          s.className = 'slot';
+          if (i === 0) s.classList.add('active');
+          slotEls.push(s);
+          slotsDiv.appendChild(s);
+        });
+        pDiv.appendChild(slotsDiv);
+
+        const poolDiv = document.createElement('div');
+        poolDiv.className = 'spell-pool double-pool';
+        
+        const pool = [...letters];
+        const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+        let distractCount = 0;
+        while (distractCount < 3) {
+          pool.push(alphabet[Math.floor(Math.random() * 26)]);
+          distractCount++;
+        }
+        shuffle(pool);
+
+        const poolElements = [];
+        pool.forEach(ch => {
+          const el = makeCard(ch);
+          el.classList.add('spell-card');
+          el.addEventListener('click', () => pickLetter(ch, el));
+          poolDiv.appendChild(el);
+          poolElements.push(el);
+        });
+        pDiv.appendChild(poolDiv);
+
+        area.appendChild(pDiv);
+
+        return { slotEls, poolElements, currentIndex: 0 };
+      }
+
+      const p1UI = createPlayerUI(1, '🔵 玩家 1', 'p1');
+      const p2UI = createPlayerUI(2, '🔴 玩家 2', 'p2');
+
+      function pickLetter(ch, el) {
+        if (globalLocked) return;
+        
+        const isP1 = p1UI.poolElements.includes(el);
+        const ui = isP1 ? p1UI : p2UI;
+        const targetLetter = letters[ui.currentIndex];
+        
+        if (el.classList.contains('done')) return;
+
+        if (ch === targetLetter) {
+          beep(600 + ui.currentIndex * 20, 0.08);
+          
+          ui.slotEls[ui.currentIndex].classList.remove('active');
+          ui.slotEls[ui.currentIndex].textContent = ch;
+          ui.slotEls[ui.currentIndex].classList.add('done');
+          
+          el.classList.add('done');
+          ui.currentIndex++;
+          
+          if (ui.currentIndex < letters.length) {
+            ui.slotEls[ui.currentIndex].classList.add('active');
+          } else {
+            globalLocked = true;
+            if (isP1) p1Score++; else p2Score++;
+            updateHud();
+            
+            if (hasSpeech) {
+              speechSynthesis.cancel();
+              const u = new SpeechSynthesisUtterance(word);
+              u.lang = 'en-US'; u.rate = 0.8;
+              speechSynthesis.speak(u);
+            }
+
+            if (p1Score >= 3 || p2Score >= 3) {
+              addTimer(setTimeout(() => {
+                const winner = p1Score >= 3 ? '🔵 玩家 1' : '🔴 玩家 2';
+                showModal('🏆 比赛结束', `${winner} 率先获得 3 分，赢下了比赛！`, startSpell);
+              }, 800));
+            } else {
+              addTimer(setTimeout(newRound, 2000));
+            }
+          }
+        } else {
+          beep(170, 0.15, 'sawtooth');
+          el.classList.add('shake');
+          addTimer(setTimeout(() => el.classList.remove('shake'), 450));
+        }
+      }
+
+      updateHud();
+      if (hasSpeech) {
+        addTimer(setTimeout(() => {
+          speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(word);
+          u.lang = 'en-US'; u.rate = 0.8;
+          speechSynthesis.speak(u);
+        }, 300));
+      }
+    }
+    newRound();
+  }
+
+  /* ==================== 7. 字母打地鼠 ==================== */
+  function startWhack() {
+    cleanupGame();
+    currentMode = 'whack';
+    board.classList.add('whack');
+    rangePicker.style.display = 'flex';
+
+    let score = 0, mistakes = 0;
+    let activeTarget = null;
+    let locked = false;
+
+    const holes = [];
+    for (let i = 0; i < 9; i++) {
+      const hole = document.createElement('div');
+      hole.className = 'whack-hole';
+      
+      const mole = document.createElement('div');
+      mole.className = 'whack-mole';
+      
+      mole.addEventListener('click', () => handleWhack(mole));
+      
+      hole.appendChild(mole);
+      board.appendChild(hole);
+      holes.push({ el: hole, mole: mole });
+    }
+
+    function updateHud() {
+      hudCenter.innerHTML = `找出字母：<b class="next-letter">${activeTarget}</b>`;
+      hudRight.textContent = `🌟 ${score} · ❌ ${mistakes}`;
+    }
+
+    function generateBoard() {
+      locked = false;
+      
+      const baseLetter = currentLetters[Math.floor(Math.random() * currentLetters.length)];
+      const useUpperCase = Math.random() < 0.5;
+      activeTarget = useUpperCase ? baseLetter : baseLetter.toLowerCase();
+
+      const letters = [activeTarget];
+      while (letters.length < 9) {
+        const randChar = currentLetters[Math.floor(Math.random() * currentLetters.length)];
+        const displayChar = useUpperCase ? randChar : randChar.toLowerCase();
+        letters.push(displayChar);
+      }
+      
+      shuffle(letters);
+
+      holes.forEach((holeObj, index) => {
+        const mole = holeObj.mole;
+        const char = letters[index];
+        
+        mole.classList.remove('dizzy', 'shake', 'up');
+        mole.innerHTML = `<span class="mole-letter">${char}</span><div class="mole-animal">🐭<span class="stars">💫</span></div>`;
+        
+        const c = WATER_COLORS[Math.floor(Math.random() * WATER_COLORS.length)];
+        mole.style.background = `linear-gradient(145deg, ${c[0]}, ${c[1]})`;
+        
+        addTimer(setTimeout(() => {
+          mole.classList.add('up');
+        }, index * 30)); 
+      });
+
+      updateHud();
+    }
+
+    function handleWhack(mole) {
+      if (locked || !mole.classList.contains('up')) return;
+      
+      const char = mole.querySelector('.mole-letter').textContent;
+      
+      if (char === activeTarget) {
+        locked = true;
+        score++;
+        beep(880, 0.1);
+        
+        mole.classList.add('dizzy');
+        updateHud();
+        
+        addTimer(setTimeout(() => {
+          generateBoard();
+        }, 1200));
+      } else {
+        mistakes++; 
+        beep(170, 0.15, 'sawtooth');
+        mole.classList.add('shake'); 
+        addTimer(setTimeout(() => mole.classList.remove('shake'), 450));
+        updateHud();
+      }
+    }
+
+    generateBoard();
+  }
+
+  /* ==================== 8. 火眼金睛 ==================== */
+  function startConfuse() {
+    cleanupGame();
+    currentMode = 'confuse';
+    board.classList.add('confuse');
+    
+    rangePicker.style.display = 'none';
+    confuseModePicker.style.display = 'flex';
+    
+    if (confuseMode === 'upper-to-lower') {
+      btnUpperToLower.classList.add('active');
+      btnLowerToUpper.classList.remove('active');
+    } else {
+      btnLowerToUpper.classList.add('active');
+      btnUpperToLower.classList.remove('active');
+    }
+
+    let correct = 0, mistakes = 0, locked = false;
+
+    function updateHud() { hudRight.textContent = '🌟 ' + correct + ' · ❌ ' + mistakes; }
+
+    function newRound() {
+      locked = false;
+      board.innerHTML = '';
+
+      const group = CONFUSE_GROUPS[Math.floor(Math.random() * CONFUSE_GROUPS.length)];
+      const target = group[Math.floor(Math.random() * group.length)];
+      
+      const isTargetUpper = (confuseMode === 'upper-to-lower');
+      const displayTarget = isTargetUpper ? target.toUpperCase() : target;
+      const needCase = isTargetUpper ? '小写' : '大写';
+
+      let options = [target];
+      const others = group.filter(c => c !== target);
+      shuffle(others);
+      while (options.length < 4 && others.length > 0) {
+        options.push(others.pop());
+      }
+      while (options.length < 4) {
+        const randChar = LETTERS[Math.floor(Math.random() * 26)].toLowerCase();
+        if (!options.includes(randChar)) {
+           options.push(randChar);
+        }
+      }
+      
+      shuffle(options);
+
+      const targetBox = document.createElement('div');
+      targetBox.className = 'confuse-target';
+      targetBox.innerHTML = `
+        <div style="font-size: 16px; font-weight: 800; color: #8D6E63; margin-bottom: 8px;">找出它对应的 <span style="color:#F5B759">${needCase}</span></div>
+        <div class="confuse-target-letter">${displayTarget}</div>
+      `;
+      board.appendChild(targetBox);
+
+      options.forEach(ch => {
+        const displayCh = isTargetUpper ? ch.toLowerCase() : ch.toUpperCase();
+        const el = makeCard(displayCh);
+        el.dataset.letter = ch;
+        
+        el.style.setProperty('--bg-light', '#D7CCC8');
+        el.style.setProperty('--bg-dark', '#BCAAA4');
+        
+        el.addEventListener('click', () => {
+          if (locked) return;
+          if (el.dataset.letter === target) {
+            locked = true; correct++;
+            beep(720, 0.09); addTimer(setTimeout(() => beep(1000, 0.12), 90));
+            el.classList.add('hit'); 
+            updateHud();
+            addTimer(setTimeout(newRound, 800));
+          } else {
+            mistakes++; beep(170, 0.18, 'sawtooth');
+            el.classList.add('shake'); addTimer(setTimeout(() => el.classList.remove('shake'), 460));
+            updateHud();
+          }
+        });
+        board.appendChild(el);
+      });
+
+      hudCenter.innerHTML = '仔细看，找出对应的大小写字母！';
+      updateHud();
+    }
+
+    newRound();
+  }
+
+  /* ==================== 模式入口绑定 ==================== */
+  document.querySelectorAll('.mode-card').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      menu.classList.remove('active');
+      game.classList.add('active');
+
+      startSelect.value = 'A';
+      endSelect.value = 'Z';
+      syncRangePicker();
+      
+      confuseModePicker.style.display = 'none';
+      spellModePicker.style.display = 'none';
+
+      const mode = btn.dataset.mode;
+      if (mode === 'order') startOrder();
+      else if (mode === 'match') startMatch();
+      else if (mode === 'listen') startListen();
+      else if (mode === 'phonics') startPhonics();
+      else if (mode === 'train') startTrain();
+      else if (mode === 'spell') startSpell();
+      else if (mode === 'whack') startWhack();
+      else if (mode === 'confuse') startConfuse();
+    });
+  });
+})();
+</script>
+</body>
+</html>
