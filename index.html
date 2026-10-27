@@ -837,6 +837,7 @@
     else if (currentMode === 'phonics') startPhonics();
     else if (currentMode === 'train') startTrain();
     else if (currentMode === 'whack') startWhack();
+    else if (currentMode === 'confuse') startConfuse();
   });
 
   endSelect.addEventListener('change', () => {
@@ -846,6 +847,7 @@
     else if (currentMode === 'phonics') startPhonics();
     else if (currentMode === 'train') startTrain();
     else if (currentMode === 'whack') startWhack();
+    else if (currentMode === 'confuse') startConfuse();
   });
 
   initRangePicker();
@@ -1670,7 +1672,8 @@
     currentMode = 'confuse';
     board.classList.add('confuse');
     
-    rangePicker.style.display = 'none';
+    // 开放字母范围选择器
+    rangePicker.style.display = 'flex';
     confuseModePicker.style.display = 'flex';
     
     if (confuseMode === 'upper-to-lower') {
@@ -1689,19 +1692,31 @@
       locked = false;
       board.innerHTML = '';
 
-      const group = CONFUSE_GROUPS[Math.floor(Math.random() * CONFUSE_GROUPS.length)];
-      const target = group[Math.floor(Math.random() * group.length)];
+      // 核心逻辑：根据选择的字母范围挑选目标字母
+      const baseTarget = currentLetters[Math.floor(Math.random() * currentLetters.length)].toLowerCase();
+      const target = baseTarget;
       
-      const isTargetUpper = (confuseMode === 'upper-to-lower');
-      const displayTarget = isTargetUpper ? target.toUpperCase() : target;
-      const needCase = isTargetUpper ? '小写' : '大写';
-
+      // 查找该字母是否属于易混淆组
+      let group = CONFUSE_GROUPS.find(g => g.includes(target));
+      let others = group ? group.filter(c => c !== target) : [];
+      
+      // 构造选项
       let options = [target];
-      const others = group.filter(c => c !== target);
       shuffle(others);
+      
+      // 1. 优先从易混淆组里取
       while (options.length < 4 && others.length > 0) {
         options.push(others.pop());
       }
+      
+      // 2. 不够的话，从当前选中的字母池里补充
+      let pool = currentLetters.map(c => c.toLowerCase()).filter(c => !options.includes(c));
+      shuffle(pool);
+      while (options.length < 4 && pool.length > 0) {
+        options.push(pool.pop());
+      }
+      
+      // 3. 极端情况（比如字母池只有2个字母），用全局字母补齐
       while (options.length < 4) {
         const randChar = LETTERS[Math.floor(Math.random() * 26)].toLowerCase();
         if (!options.includes(randChar)) {
@@ -1710,6 +1725,10 @@
       }
       
       shuffle(options);
+
+      const isTargetUpper = (confuseMode === 'upper-to-lower');
+      const displayTarget = isTargetUpper ? target.toUpperCase() : target;
+      const needCase = isTargetUpper ? '小写' : '大写';
 
       const targetBox = document.createElement('div');
       targetBox.className = 'confuse-target';
